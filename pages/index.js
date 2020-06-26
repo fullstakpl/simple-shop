@@ -1,61 +1,67 @@
+import { useEffect, useState } from 'react'
 import Head from 'next/head'
+import { loadStripe } from '@stripe/stripe-js';
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE);
+
+const formatPrice = new Intl.NumberFormat('pl-PL', {
+  style: 'currency',
+  currency: 'PLN',
+  minimumFractionDigits: 2
+})
+
+const handleOrder = async productId => {
+  const stripeResp = await fetch(`/api/order`)
+  const { id: sessionId } = await stripeResp.json()
+
+  const stripe = await stripePromise;
+  const { error } = await stripe.redirectToCheckout({ sessionId });
+  console.log(error)
+}
 
 export default function Home() {
+  const [products, setProducts] = useState([]);
+  useEffect(() => {
+    const getProducts = async () => {
+      const response = await fetch(`/api/products`)
+      const data = await response.json()
+      setProducts(data)
+    }
+
+    getProducts()
+  }, [])
+
   return (
     <div className="container">
       <Head>
         <title>Create Next App</title>
         <link rel="icon" href="/favicon.ico" />
+        <script src="https://js.stripe.com/v3/"></script>
       </Head>
 
       <main>
-        <h1 className="title">
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
         <p className="description">
-          Get started by editing <code>pages/index.js</code>
+          Zamów konsultacje
         </p>
 
         <div className="grid">
-          <a href="https://nextjs.org/docs" className="card">
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className="card">
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className="card"
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="card"
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
+          {products.map(product => {
+            return (
+              <a key={product.id} onClick={() => handleOrder(product.id)} className="card">
+                <h3>{product.title}</h3>
+                <p>{formatPrice.format(product.priceCents / 100)}</p>
+              </a>
+            )
+          })}
         </div>
       </main>
 
       <footer>
         <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
+          href="https://fullstak.pl"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel Logo" className="logo" />
+          fullstak.pl
         </a>
       </footer>
 
@@ -158,6 +164,7 @@ export default function Home() {
           border: 1px solid #eaeaea;
           border-radius: 10px;
           transition: color 0.15s ease, border-color 0.15s ease;
+          width: 330px;
         }
 
         .card:hover,
